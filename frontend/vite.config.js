@@ -53,9 +53,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
       manifest: {
-        name: 'Temp Email',
-        short_name: 'Temp Email',
-        description: 'Temp Email - Temporary Email',
+        name: '藏雪のMail',
+        short_name: '藏雪のMail',
+        description: '藏雪のMail - Temporary Email',
         theme_color: '#ffffff',
         icons: [
           {

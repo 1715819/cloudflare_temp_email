@@ -1,4 +1,4 @@
-# cloudflare temp email
+# cloudflare 藏雪のMail
 
 This is a temporary email service that uses Cloudflare Workers to create a temporary email address and view the received email in web browser.
 
