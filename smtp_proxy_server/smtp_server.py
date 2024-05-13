@@ -3,24 +3,13 @@ import logging
 import email
 import requests
 
-from pydantic_settings import BaseSettings
 from aiosmtpd.controller import Controller
 from aiosmtpd.smtp import SMTP, Session, Envelope, AuthResult, LoginPassword
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
+from config import settings
 
 _logger = logging.getLogger(__name__)
 _logger.setLevel(logging.INFO)
-
-
-class Settings(BaseSettings):
-    proxy_url: str = "http://localhost:8787"
-    port: int = 8025
-
-    class Config:
-        env_file = ".env"
 
 
 class CustomSMTPHandler:
@@ -51,6 +40,7 @@ class CustomSMTPHandler:
         if msg.is_multipart():
             for part in msg.walk():
                 content_type = part.get_content_type()
+                charset = part.get_content_charset()
                 payload = part.get_payload(decode=True)
                 if content_type not in ["text/plain", "text/html"]:
                     _logger.warning(f"Skipping {content_type}")
@@ -59,7 +49,7 @@ class CustomSMTPHandler:
                     continue
                 content_list.append({
                     "type": content_type,
-                    "value": payload.decode()
+                    "value": payload.decode(charset)
                 })
         elif msg.get_content_type() in ["text/plain", "text/html"] and msg.get_payload(decode=True):
             content_list.append({
@@ -97,7 +87,7 @@ class CustomSMTPHandler:
             "is_html": body["type"] == "text/html",
             "content": body["value"],
         }
-        _logger.info(f"Send mail {send_body}")
+        _logger.info(f"Send mail {dict(send_body, token='***')}")
         try:
             res = requests.post(
                 f"{settings.proxy_url}/external/api/send_mail",
@@ -118,7 +108,6 @@ class CustomSMTPHandler:
         return '250 OK'
 
 
-settings = Settings()
 handler = CustomSMTPHandler()
 server = Controller(
     handler,
@@ -132,11 +121,11 @@ server = Controller(
 
 
 async def start():
-    _logger.info(f"Starting server settings[{settings}]")
+    _logger.info(f"Starting server on port {settings.port}")
     server.start()
 
 
-if __name__ == "__main__":
+def start_smtp_server():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     task = loop.create_task(start())
@@ -145,3 +134,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         _logger.info("Got KeyboardInterrupt, stopping")
         server.stop()
+
+
+if __name__ == "__main__":
+    _logger.info(f"Starting server settings[{settings}]")
+    start_smtp_server()
